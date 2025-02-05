@@ -15,280 +15,227 @@
  */
 
 package com.example.jetlagged
-
-import android.os.SystemClock
-import androidx.activity.compose.PredictiveBackHandler
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.calculateTargetValue
-import androidx.compose.animation.rememberSplineBasedDecay
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Leaderboard
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Surface
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.lerp
-import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.launch
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+
+data class ListItem(
+    val emoji: String,
+    val title: String,
+    val description: String
+)
+
+val itemsList = listOf(
+    ListItem("☕", "Tomar café", "Registro de consumo diario"),
+    ListItem("🏋️", "Ir al gimnasio", "Sesiones de entrenamiento"),
+    ListItem("📔", "Diario", "Registro diario personal"),
+    ListItem("⚖️", "Peso", "Control de peso corporal"),
+    ListItem("🍎", "Comidas", "Registro nutricional"),
+    ListItem("😊", "Ánimo", "Estado emocional diario"),
+    ListItem("📚", "Lectura", "Tiempo de lectura diario")
+)
 
 @Composable
-fun HomeScreenDrawer(windowSizeClass: WindowSizeClass) {
+fun MainActivityScreen() {
+    //Gestionar la pila de navegación (qué pantalla está visible, historial, etc.):
+    val navController = rememberNavController()
+    //Mantener los valores ingresados por el usuario en todas las pantallas:
+    var savedValues by rememberSaveable { mutableStateOf(emptyMap<String, Int>()) }
 
-    Surface(
-        modifier = Modifier.fillMaxSize()
+    //Contenedor que define todas las pantallas/rutas posibles
+    NavHost(
+        navController = navController,
+        //Pantalla inicial:
+        startDestination = "main"
     ) {
-        var drawerState by remember {
-            mutableStateOf(DrawerState.Closed)
+        composable("main") {
+            MainScreen(
+                savedValues = savedValues,
+                //Navegar a la pantalla:
+                onItemClick = { item -> navController.navigate("detail/${item.title}") },
+                //Actualiza el mapa global cuando se guardan nuevos valores:
+                onValuesUpdate = { newValues -> savedValues = newValues }
+            )
         }
-        var screenState by remember {
-            mutableStateOf(Screen.Home)
-        }
-
-        val translationX = remember {
-            Animatable(0f)
-        }
-
-        val drawerWidth = with(LocalDensity.current) {
-            DrawerWidth.toPx()
-        }
-        translationX.updateBounds(0f, drawerWidth)
-
-        val coroutineScope = rememberCoroutineScope()
-
-        //ANIMAN TRANSATIONX MEDIANTE CORRUTINAS
-        suspend fun closeDrawer(velocity: Float = 0f) {
-            translationX.animateTo(targetValue = 0f, initialVelocity = velocity)
-            drawerState = DrawerState.Closed
-        }
-        suspend fun openDrawer(velocity: Float = 0f) {
-            translationX.animateTo(targetValue = drawerWidth, initialVelocity = velocity)
-            drawerState = DrawerState.Open
-        }
-        //Alterna entre estados
-        fun toggleDrawerState() {
-            coroutineScope.launch {
-                if (drawerState == DrawerState.Open) {
-                    closeDrawer()
-                } else {
-                    openDrawer()
-                }
-            }
-        }
-        val velocityTracker = remember {
-            VelocityTracker()
-        }
-        PredictiveBackHandler(drawerState == DrawerState.Open) { progress ->
-            try {
-                progress.collect { backEvent ->
-                    val targetSize = (drawerWidth - (drawerWidth * backEvent.progress))
-                    translationX.snapTo(targetSize)
-                    velocityTracker.addPosition(
-                        SystemClock.uptimeMillis(),
-                        Offset(backEvent.touchX, backEvent.touchY)
-                    )
-                }
-                closeDrawer(velocityTracker.calculateVelocity().x)
-            } catch (e: CancellationException) {
-                openDrawer(velocityTracker.calculateVelocity().x)
-            }
-            velocityTracker.resetTracking()
-        }
-
-        HomeScreenDrawerContents(
-            selectedScreen = screenState,
-            onScreenSelected = { screen ->
-                screenState = screen
-            }
-        )
-
-        val draggableState = rememberDraggableState(onDelta = { dragAmount ->
-            coroutineScope.launch {
-                translationX.snapTo(translationX.value + dragAmount)
-            }
-        })
-        val decay = rememberSplineBasedDecay<Float>()
-        ScreenContents(
-            //WindowsSizeClass es un parámetro, y hace que la ventana sea
-            //responsiva.
-            windowWidthSizeClass = windowSizeClass.widthSizeClass,
-            selectedScreen = screenState,
-            onDrawerClicked = ::toggleDrawerState,
-            modifier = Modifier
-                .graphicsLayer {
-                    this.translationX = translationX.value
-                    val scale = lerp(1f, 0.8f, translationX.value / drawerWidth)
-                    this.scaleX = scale
-                    this.scaleY = scale
-                    val roundedCorners = lerp(0f, 32.dp.toPx(), translationX.value / drawerWidth)
-                    this.shape = RoundedCornerShape(roundedCorners)
-                    this.clip = true
-                    this.shadowElevation = 32f
-                }
-                // This example is showing how to use draggable with custom logic on stop to snap to the edges
-                // You can also use `anchoredDraggable()` to set up anchors and not need to worry about more calculations.
-                .draggable(
-                    draggableState, Orientation.Horizontal,
-                    onDragStopped = { velocity ->
-                        val targetOffsetX = decay.calculateTargetValue(
-                            translationX.value,
-                            velocity
-                        )
-                        coroutineScope.launch {
-                            val actualTargetX = if (targetOffsetX > drawerWidth * 0.5) {
-                                drawerWidth
-                            } else {
-                                0f
-                            }
-                            // checking if the difference between the target and actual is + or -
-                            val targetDifference = (actualTargetX - targetOffsetX)
-                            val canReachTargetWithDecay =
-                                (
-                                    targetOffsetX > actualTargetX && velocity > 0f &&
-                                        targetDifference > 0f
-                                    ) ||
-                                    (
-                                        targetOffsetX < actualTargetX && velocity < 0 &&
-                                            targetDifference < 0f
-                                        )
-                            if (canReachTargetWithDecay) {
-                                translationX.animateDecay(
-                                    initialVelocity = velocity,
-                                    animationSpec = decay
-                                )
-                            } else {
-                                translationX.animateTo(actualTargetX, initialVelocity = velocity)
-                            }
-                            drawerState = if (actualTargetX == drawerWidth) {
-                                DrawerState.Open
-                            } else {
-                                DrawerState.Closed
-                            }
-                        }
-                    }
-                )
-        )
-    }
-}
-
-
-/**
- * CONTENIDOS DEL MENÚ EXTENSIBLE
- */
-@Composable
-private fun ScreenContents(
-    windowWidthSizeClass: WindowWidthSizeClass,
-    selectedScreen: Screen,
-    onDrawerClicked: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(modifier) {
-        when (selectedScreen) {
-            Screen.Home ->
-                JetLaggedScreen(
-                    windowSizeClass = windowWidthSizeClass,
-                    modifier = Modifier,
-                    onDrawerClicked = onDrawerClicked
-                )
-
-            Screen.SleepDetails ->
-                Surface(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                }
-
-            Screen.Leaderboard ->
-                Surface(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                }
-
-            Screen.Settings ->
-                Surface(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                }
-            Screen.Prueba ->
-                Surface(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                }
-        }
-    }
-}
-
-private enum class DrawerState {
-    Open,
-    Closed
-}
-
-@Composable
-private fun HomeScreenDrawerContents(
-    selectedScreen: Screen,
-    onScreenSelected: (Screen) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center
-    ) {
-        //Para cada entrada, les pone sus datos:
-        Screen.entries.forEach {
-            NavigationDrawerItem(
-                label = {
-                    Text(it.text)
+        composable("detail/{title}") { backStackEntry ->
+            val title = backStackEntry.arguments?.getString("title") ?: ""
+            DetailScreen(
+                //Parámetro dinámico en la ruta:
+                title = title,
+                currentValue = savedValues[title]?.toString() ?: "",
+                onSave = { newValue ->
+                    //Actualizar mapa:
+                    if(newValue!="")
+                    savedValues = savedValues + (title to newValue.toInt())
+                    //Volver atras:
+                    navController.popBackStack()
                 },
-                icon = {
-                    Icon(imageVector = it.icon, contentDescription = it.text)
-                },
-                selected = selectedScreen == it,
-                onClick = {
-                    onScreenSelected(it)
-                },
+                //Volver sin guardar:
+                onBack = { navController.popBackStack() }
             )
         }
     }
 }
 
-private val DrawerWidth = 300.dp
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(
+    savedValues: Map<String, Int>,       // Valores guardados (ej: "Tomar café" → 2)
+    onItemClick: (ListItem) -> Unit,     // Callback al hacer clic en un ítem
+    onValuesUpdate: (Map<String, Int>) -> Unit // Callback para actualizar valores
+)
+{
+    Scaffold(
+    //Componente de Material 3 que estructura la pantalla en secciones
+    // (AppBar, contenido, etc.).
+        topBar = {
+            TopAppBar(
+                //BARRA SUPERIOR
+                title = { Text("CORREL JOURNAL") }
+            )
+        }
+    ) { padding ->
+        // Contenido principal aquí:
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            items(itemsList) { item ->
+                ListItemRow(
+                    item = item,
+                    value = savedValues[item.title],
+                    onClick = { onItemClick(item) }
+                )
+            }
+        }
+    }
+}
 
+@Composable
+fun ListItemRow(item: ListItem, value: Int?, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = item.emoji,
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = item.description,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        //El weight(1f) hace que se muestre a la derecha:
+        Spacer(modifier = Modifier.weight(1f))
+        //Solo ejecuta el bloque si value no es null:
+        value?.let {
+            Text(
+                text = "$it",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
 
-/**
- * PANTALLAS DEL MENÚ EXTENSIBLE
- */
-private enum class Screen(val text: String, val icon: ImageVector) {
-    Home("Home", Icons.Default.Home),
-    SleepDetails("Sleep", Icons.Default.Bedtime),
-    Leaderboard("Leaderboard", Icons.Default.Leaderboard),
-    Settings("Settings", Icons.Default.Settings),
-    Prueba("Prueba", Icons.Filled.Star),
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DetailScreen(
+    title: String,
+    currentValue: String,
+    onSave: (String) -> Unit,
+    onBack: () -> Unit
+) {
+    var inputValue by remember { mutableStateOf(currentValue) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, "Volver")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            TextField(
+                value = inputValue,
+                onValueChange = { newValue ->
+                    if (newValue.matches(Regex("^\\d*\$"))) {
+                        inputValue = newValue
+                    }
+                },
+                label = { Text("Ingrese un número") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    if(inputValue!=null){
+                        onSave(inputValue)
+                    }
+                          },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Guardar")
+            }
+        }
+    }
 }

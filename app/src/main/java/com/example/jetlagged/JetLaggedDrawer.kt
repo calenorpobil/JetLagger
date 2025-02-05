@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Surface
@@ -82,6 +83,7 @@ fun HomeScreenDrawer(windowSizeClass: WindowSizeClass) {
 
         val coroutineScope = rememberCoroutineScope()
 
+        //ANIMAN TRANSATIONX MEDIANTE CORRUTINAS
         suspend fun closeDrawer(velocity: Float = 0f) {
             translationX.animateTo(targetValue = 0f, initialVelocity = velocity)
             drawerState = DrawerState.Closed
@@ -90,6 +92,7 @@ fun HomeScreenDrawer(windowSizeClass: WindowSizeClass) {
             translationX.animateTo(targetValue = drawerWidth, initialVelocity = velocity)
             drawerState = DrawerState.Open
         }
+        //Alterna entre estados
         fun toggleDrawerState() {
             coroutineScope.launch {
                 if (drawerState == DrawerState.Open) {
@@ -133,6 +136,8 @@ fun HomeScreenDrawer(windowSizeClass: WindowSizeClass) {
         })
         val decay = rememberSplineBasedDecay<Float>()
         ScreenContents(
+            //WindowsSizeClass es un parámetro, y hace que la ventana sea
+            //responsiva.
             windowWidthSizeClass = windowSizeClass.widthSizeClass,
             selectedScreen = screenState,
             onDrawerClicked = ::toggleDrawerState,
@@ -193,6 +198,10 @@ fun HomeScreenDrawer(windowSizeClass: WindowSizeClass) {
     }
 }
 
+
+/**
+ * CONTENIDOS DEL MENÚ EXTENSIBLE
+ */
 @Composable
 private fun ScreenContents(
     windowWidthSizeClass: WindowWidthSizeClass,
@@ -226,6 +235,11 @@ private fun ScreenContents(
                     modifier = Modifier.fillMaxSize()
                 ) {
                 }
+            Screen.Prueba ->
+                Surface(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                }
         }
     }
 }
@@ -247,6 +261,7 @@ private fun HomeScreenDrawerContents(
             .padding(16.dp),
         verticalArrangement = Arrangement.Center
     ) {
+        //Para cada entrada, les pone sus datos:
         Screen.entries.forEach {
             NavigationDrawerItem(
                 label = {
@@ -266,9 +281,14 @@ private fun HomeScreenDrawerContents(
 
 private val DrawerWidth = 300.dp
 
+
+/**
+ * PANTALLAS DEL MENÚ EXTENSIBLE
+ */
 private enum class Screen(val text: String, val icon: ImageVector) {
     Home("Home", Icons.Default.Home),
     SleepDetails("Sleep", Icons.Default.Bedtime),
     Leaderboard("Leaderboard", Icons.Default.Leaderboard),
     Settings("Settings", Icons.Default.Settings),
+    Prueba("Prueba", Icons.Filled.Star),
 }
