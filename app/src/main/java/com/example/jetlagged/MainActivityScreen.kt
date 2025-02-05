@@ -24,6 +24,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -196,7 +197,7 @@ fun SimpleUsageChart(timesUsed: List<Int>, modifier: Modifier = Modifier) {
         Text(
             text = "Últimos 7 días:",
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(bottom = 4.dp)
+            modifier = Modifier.padding(bottom = 4.dp, end = 12.dp)
         )
 
         Row(
@@ -267,30 +268,45 @@ fun ListItemRow(item: ListItem, expanded: Boolean, onExpand: (Boolean) -> Unit) 
 }
 
 // En MainScreen
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainActivityScreen() {
     var expandedItemId by remember { mutableStateOf<String?>(null) }
     val items = remember { mutableStateListOf(*itemsList.toTypedArray()) }
 
-    LazyColumn {
-        items(items) { item ->
-            ListItemRow(
-                item = item,
-                expanded = item.id == expandedItemId,
-                onExpand = { isExpanded ->
-                    expandedItemId = if (isExpanded) {
-                        // Actualizar estadísticas al expandir
-                        val updatedItem = item.copy(
-                            usageCount = item.usageCount + 1,
-                            timesUsed = item.timesUsed + (1..7).random() // Datos de ejemplo
-                        )
-                        items[items.indexOf(item)] = updatedItem
-                        updatedItem.id
-                    } else {
-                        null
-                    }
-                }
+    Scaffold (
+        topBar = {
+            TopAppBar(
+                //BARRA SUPERIOR
+                title = { Text("DIARIO ESTADÍSTICO") }
             )
+        }
+    ){ padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+
+            items(items) { item ->
+                ListItemRow(
+                    item = item,
+                    expanded = item.id == expandedItemId,
+                    onExpand = { isExpanded ->
+                        expandedItemId = if (isExpanded) {
+                            // Actualizar estadísticas al expandir
+                            val updatedItem = item.copy(
+                                usageCount = item.usageCount + 1,
+                                timesUsed = item.timesUsed + (1..7).random() // Datos de ejemplo
+                            )
+                            items[items.indexOf(item)] = updatedItem
+                            updatedItem.id
+                        } else {
+                            null
+                        }
+                    }
+                )
+            }
         }
     }
 }
