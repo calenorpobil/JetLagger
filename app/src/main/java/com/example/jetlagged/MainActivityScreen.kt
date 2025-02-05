@@ -15,38 +15,51 @@
  */
 
 package com.example.jetlagged
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -54,93 +67,153 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
-data class ListItem(
-    val emoji: String,
-    val title: String,
-    val description: String
-)
 
 val itemsList = listOf(
-    ListItem("☕", "Tomar café", "Registro de consumo diario"),
-    ListItem("🏋️", "Ir al gimnasio", "Sesiones de entrenamiento"),
-    ListItem("📔", "Diario", "Registro diario personal"),
-    ListItem("⚖️", "Peso", "Control de peso corporal"),
-    ListItem("🍎", "Comidas", "Registro nutricional"),
-    ListItem("😊", "Ánimo", "Estado emocional diario"),
-    ListItem("📚", "Lectura", "Tiempo de lectura diario")
+    ListItem(
+        id = "coffee",
+        emoji = "☕",
+        title = "Tomar café",
+        description = "Tazas consumidas al día",
+        usageCount = 0,
+        timesUsed = listOf(2, 3, 1, 2, 2, 3, 1) // Ejemplo de última semana
+    ),
+    ListItem(
+        id = "gym",
+        emoji = "🏋️",
+        title = "Ir al gimnasio",
+        description = "Sesiones de entrenamiento semanales",
+        usageCount = 0,
+        timesUsed = listOf(4, 3, 5, 4, 6, 5, 4)
+    ),
+    ListItem(
+        id = "journal",
+        emoji = "📔",
+        title = "Diario",
+        description = "Entradas diarias completadas",
+        usageCount = 0,
+        timesUsed = listOf(1, 1, 1, 1, 0, 1, 1)
+    ),
+    ListItem(
+        id = "weight",
+        emoji = "⚖️",
+        title = "Peso",
+        description = "Registro diario (kg)",
+        usageCount = 0,
+        timesUsed = listOf(72, 72, 71, 71, 71, 70, 70)
+    ),
+    ListItem(
+        id = "meals",
+        emoji = "🍎",
+        title = "Comidas",
+        description = "Comidas balanceadas consumidas",
+        usageCount = 0,
+        timesUsed = listOf(3, 2, 3, 3, 4, 3, 2)
+    ),
+    ListItem(
+        id = "mood",
+        emoji = "😊",
+        title = "Ánimo",
+        description = "Puntuación diaria (1-5)",
+        usageCount = 0,
+        timesUsed = listOf(4, 3, 5, 4, 4, 2, 4)
+    ),
+    ListItem(
+        id = "reading",
+        emoji = "📚",
+        title = "Lectura",
+        description = "Minutos diarios de lectura",
+        usageCount = 0,
+        timesUsed = listOf(30, 45, 20, 60, 15, 25, 40)
+    )
 )
 
-@Composable
-fun MainActivityScreen() {
-    //Gestionar la pila de navegación (qué pantalla está visible, historial, etc.):
-    val navController = rememberNavController()
-    //Mantener los valores ingresados por el usuario en todas las pantallas:
-    var savedValues by rememberSaveable { mutableStateOf(emptyMap<String, Int>()) }
+data class ListItem(
+    val id: String,
+    val emoji: String,
+    val title: String,
+    val description: String,
+    var usageCount: Int = 0,
+    var timesUsed: List<Int> = emptyList() // Para la gráfica
+)
 
-    //Contenedor que define todas las pantallas/rutas posibles
-    NavHost(
-        navController = navController,
-        //Pantalla inicial:
-        startDestination = "main"
+/**
+ * ESTO SOLO SE VE AL CLICAR UN ITEM:
+ */
+@Composable
+fun ExpandedListItemDetails(item: ListItem) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = 4.dp
     ) {
-        composable("main") {
-            MainScreen(
-                savedValues = savedValues,
-                //Navegar a la pantalla:
-                onItemClick = { item -> navController.navigate("detail/${item.title}") },
-                //Actualiza el mapa global cuando se guardan nuevos valores:
-                onValuesUpdate = { newValues -> savedValues = newValues }
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize()
+        ) {
+            // Sección de descripción
+            Text(
+                text = item.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
             )
-        }
-        composable("detail/{title}") { backStackEntry ->
-            val title = backStackEntry.arguments?.getString("title") ?: ""
-            DetailScreen(
-                //Parámetro dinámico en la ruta:
-                title = title,
-                currentValue = savedValues[title]?.toString() ?: "",
-                onSave = { newValue ->
-                    //Actualizar mapa:
-                    if(newValue!="")
-                    savedValues = savedValues + (title to newValue.toInt())
-                    //Volver atras:
-                    navController.popBackStack()
-                },
-                //Volver sin guardar:
-                onBack = { navController.popBackStack() }
-            )
+
+            //Spacer(modifier = Modifier.height(12.dp))
+
+            // Estadísticas
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text(
+                        text = "Veces usado:",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Text(
+                        text = item.usageCount.toString(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                // Gráfica simple de barras
+                SimpleUsageChart(timesUsed = item.timesUsed)
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(
-    savedValues: Map<String, Int>,       // Valores guardados (ej: "Tomar café" → 2)
-    onItemClick: (ListItem) -> Unit,     // Callback al hacer clic en un ítem
-    onValuesUpdate: (Map<String, Int>) -> Unit // Callback para actualizar valores
-)
-{
-    Scaffold(
-    //Componente de Material 3 que estructura la pantalla en secciones
-    // (AppBar, contenido, etc.).
-        topBar = {
-            TopAppBar(
-                //BARRA SUPERIOR
-                title = { Text("CORREL JOURNAL") }
-            )
-        }
-    ) { padding ->
-        // Contenido principal aquí:
-        LazyColumn(
+fun SimpleUsageChart(timesUsed: List<Int>, modifier: Modifier = Modifier) {
+    val maxValue = timesUsed.maxOrNull() ?: 1
+    val barColor = MaterialTheme.colorScheme.primary
+
+    Column(modifier = modifier.width(100.dp)) {
+        Text(
+            text = "Últimos 7 días:",
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom,
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .height(50.dp)
+                .fillMaxWidth()
         ) {
-            items(itemsList) { item ->
-                ListItemRow(
-                    item = item,
-                    value = savedValues[item.title],
-                    onClick = { onItemClick(item) }
+            timesUsed.takeLast(7).forEach { value ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 2.dp)
+                        .height((value.toFloat() / maxValue * 40).dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(barColor)
                 )
             }
         }
@@ -148,94 +221,76 @@ fun MainScreen(
 }
 
 @Composable
-fun ListItemRow(item: ListItem, value: Int?, onClick: () -> Unit) {
-    Row(
+fun ListItemRow(item: ListItem, expanded: Boolean, onExpand: (Boolean) -> Unit) {
+    var localExpanded by remember { mutableStateOf(expanded) }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable {
+                localExpanded = !localExpanded
+                onExpand(localExpanded)
+            }
+            .padding(8.dp)
     ) {
-        Text(
-            text = item.emoji,
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.size(48.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Contenido principal igual que antes
             Text(
-                text = item.title,
-                style = MaterialTheme.typography.titleMedium
+                text = item.emoji,
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.size(48.dp)
             )
-            Text(
-                text = item.description,
-                style = MaterialTheme.typography.bodySmall
-            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = item.description,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
-        //El weight(1f) hace que se muestre a la derecha:
-        Spacer(modifier = Modifier.weight(1f))
-        //Solo ejecuta el bloque si value no es null:
-        value?.let {
-            Text(
-                text = "$it",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+
+        AnimatedVisibility(
+            visible = localExpanded,
+            enter = expandVertically(animationSpec = tween(300)),
+            exit = shrinkVertically(animationSpec = tween(300))
+        ) {
+            ExpandedListItemDetails(item = item)
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// En MainScreen
 @Composable
-fun DetailScreen(
-    title: String,
-    currentValue: String,
-    onSave: (String) -> Unit,
-    onBack: () -> Unit
-) {
-    var inputValue by remember { mutableStateOf(currentValue) }
+fun MainActivityScreen() {
+    var expandedItemId by remember { mutableStateOf<String?>(null) }
+    val items = remember { mutableStateListOf(*itemsList.toTypedArray()) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
+    LazyColumn {
+        items(items) { item ->
+            ListItemRow(
+                item = item,
+                expanded = item.id == expandedItemId,
+                onExpand = { isExpanded ->
+                    expandedItemId = if (isExpanded) {
+                        // Actualizar estadísticas al expandir
+                        val updatedItem = item.copy(
+                            usageCount = item.usageCount + 1,
+                            timesUsed = item.timesUsed + (1..7).random() // Datos de ejemplo
+                        )
+                        items[items.indexOf(item)] = updatedItem
+                        updatedItem.id
+                    } else {
+                        null
                     }
                 }
             )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            TextField(
-                value = inputValue,
-                onValueChange = { newValue ->
-                    if (newValue.matches(Regex("^\\d*\$"))) {
-                        inputValue = newValue
-                    }
-                },
-                label = { Text("Ingrese un número") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Button(
-                onClick = {
-                    if(inputValue!=null){
-                        onSave(inputValue)
-                    }
-                          },
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text("Guardar")
-            }
         }
     }
 }
