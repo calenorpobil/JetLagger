@@ -35,11 +35,14 @@ import com.example.jetlagged.ui.theme.JetLaggedTheme
 
 class MainActivity : ComponentActivity() {
 
+    //@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
+
+            //Aplicación demo, para referencia:
             val windowSizeClass = calculateWindowSizeClass(this)
 
             JetLaggedTheme {

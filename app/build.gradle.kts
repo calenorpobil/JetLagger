@@ -96,6 +96,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.material3.window.size.android)
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -117,7 +118,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.material.iconsExtended)
-    implementation(libs.androidx.compose.materialWindow)
+    //implementation(libs.androidx.compose.materialWindow)
     implementation(libs.androidx.compose.ui.googlefonts)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
