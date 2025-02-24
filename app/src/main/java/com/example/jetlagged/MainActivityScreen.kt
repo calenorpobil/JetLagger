@@ -15,6 +15,7 @@
  */
 
 package com.example.jetlagged
+import EditarPantalla
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -59,6 +60,8 @@ import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.jetlagged.ui.theme.JetLaggedTheme
 
 
 val itemsList = listOf(
@@ -262,7 +265,7 @@ private fun ActionButton(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainActivityScreen() {
+fun MainActivityScreen(navController: NavController) {
     var expandedItemId by remember { mutableStateOf<String?>(null) }
     val items = remember { mutableStateListOf(*itemsList.toTypedArray()) }
 
@@ -284,8 +287,10 @@ fun MainActivityScreen() {
                 ListItemRow(
                     item = item,
                     onDelete = { /* Lógica borrar */ },
-                    onEdit = { /* Lógica editar */ },
-                    onView = { /* Lógica ver */ },
+                    onEdit = {
+                        navController.navigate(Navigation.Screen.Edit.route)
+                             },
+                    onView = {/* Lógica ver */ },
                     onAdd = {},
                     isExpanded = item.id == expandedItemId,
                     onExpand = { isExpanded ->

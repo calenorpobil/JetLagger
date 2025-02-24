@@ -16,6 +16,7 @@
 
 package com.example.jetlagged
 
+import EditarPantalla
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Message
@@ -31,6 +32,9 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.jetlagged.ui.theme.JetLaggedTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,18 +45,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
+            val navController = rememberNavController()
 
-            //Aplicación demo, para referencia:
-            val windowSizeClass = calculateWindowSizeClass(this)
-
-            JetLaggedTheme {
-                MainActivityScreen()
+            NavHost(
+                navController = navController,
+                startDestination = Navigation.Screen.Main.route
+            ) {
+                composable(Navigation.Screen.Main.route) {
+                    MainActivityScreen(navController)
+                }
+                composable(Navigation.Screen.Edit.route) {
+                    EditarPantalla()
+                }
             }
-            /*JetLaggedTheme {
-                HomeScreenDrawer(windowSizeClass)
-            }*/
         }
-
     }
 
 
